@@ -1,10 +1,11 @@
 package main
 
 import (
-	"net/url"
-	"net/http"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/url"
+	"strconv"
 )
 
 // https://reqres.in/
@@ -21,9 +22,9 @@ type UsersPaginationWrapper struct {
 	} `json:"data"`
 }
 
-func f( page string, user chan *UsersPaginationWrapper ) {
+func fetch(page string, user chan *UsersPaginationWrapper) {
 	rel := &url.URL{
-		Path: "/api/users",
+		Path:   "/api/users",
 		Scheme: "https",
 		Host:   "reqres.in",
 	}
@@ -49,14 +50,14 @@ func f( page string, user chan *UsersPaginationWrapper ) {
 	user <- &usersPaginationWrapper
 }
 
-func main ()  {
+func main() {
 
-	go func () {
-		messages := make(chan *UsersPaginationWrapper, 1)
-		go f("1", messages)
-		msg := <- messages
-		close(messages)
-		fmt.Printf("done %+v\n", msg)
-	}()
-
+	var outputs [4]chan *UsersPaginationWrapper
+	for i := range outputs {
+		outputs[i] = make(chan *UsersPaginationWrapper)
+		go fetch(strconv.Itoa(i+1), outputs[i])
+		msg := <-outputs[i]
+		close(outputs[i])
+		fmt.Printf("done %d %+v\n", i+1, msg)
+	}
 }
